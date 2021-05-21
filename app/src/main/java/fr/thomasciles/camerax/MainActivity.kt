@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
     private val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
-            startCamera()
+            setupView()
             Toast.makeText(this, "Camera permission granted", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(this, "Camera permission needed", Toast.LENGTH_SHORT).show()
@@ -49,7 +49,6 @@ class MainActivity : AppCompatActivity() {
     private fun hasBackCamera() = cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
 
 
-    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -58,7 +57,10 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
+    }
 
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupView() {
         binding.apply {
             cameraCaptureButton.setOnClickListener {
                 takePhoto()
@@ -100,7 +102,9 @@ class MainActivity : AppCompatActivity() {
         showLastImageInGallery()
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+        startCamera()
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
