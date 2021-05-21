@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="gallery_rounded_button_padding" type="dimen">2dp</item>
+</resources>
