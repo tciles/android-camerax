@@ -9,12 +9,14 @@ import android.os.Bundle
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
 import android.widget.Toast
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.core.math.MathUtils
 import androidx.core.view.isVisible
 import androidx.core.view.setPadding
 import androidx.transition.Fade
@@ -172,11 +174,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        val onScaleGestureListener = object: ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector?): Boolean {
+                val zoomRatio: Float = camera.cameraInfo.zoomState.value?.zoomRatio ?: 1F
+                val newZoom :Float = zoomRatio * (detector?.scaleFactor ?: 1F)
+                val clampedNewZoom: Float = MathUtils.clamp(newZoom,
+                    camera.cameraInfo.zoomState.value!!.minZoomRatio,
+                    camera.cameraInfo.zoomState.value!!.maxZoomRatio)
+
+                camera.cameraControl.setZoomRatio(clampedNewZoom)
+
+                Log.d("CameraX", "setZoomRatio ratio: $clampedNewZoom");
+
+                return true
+            }
+        }
+
         val tapGestureDetector = GestureDetector(this, onTapGestureListener)
+        val scaleDetector = ScaleGestureDetector(this, onScaleGestureListener)
 
         binding.previewView.setOnTouchListener { _, e: MotionEvent ->
             val tapEventProcessed = tapGestureDetector.onTouchEvent(e)
-            tapEventProcessed
+            val scaleEventProcessed = scaleDetector.onTouchEvent(e)
+            tapEventProcessed || scaleEventProcessed
         }
     }
 
