@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -195,10 +196,30 @@ class MainActivity : AppCompatActivity() {
             tapEventProcessed || scaleEventProcessed
         }
 
+        binding.appCompatSeekBar.max = 100
+        binding.appCompatSeekBar.progress = (100 * camera.cameraInfo.zoomState.value!!.linearZoom).toInt()
+        binding.appCompatSeekBar.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) {
+                    return
+                }
+
+                val percentage: Float = progress / 100F
+                camera.cameraControl.setLinearZoom(percentage)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+            }
+        })
+
         camera.cameraInfo.zoomState.removeObservers(this)
         camera.cameraInfo.zoomState.observe(this) { state ->
             val str = String.format("%.2fx", state.zoomRatio)
-            Log.d("CameraX", "zoomState ratio: $str");
+            binding.textView.text = str
+            binding.appCompatSeekBar.progress = (100 * state.linearZoom).toInt()
         }
     }
 
