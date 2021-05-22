@@ -6,6 +6,8 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.ScaleAnimation
 import android.view.animation.TranslateAnimation
@@ -139,10 +141,43 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.unbindAll()
                 val camera: Camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
                 setupFlash(camera)
+                setupGestureControls(camera)
             } catch (e: Exception) {
 
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestureControls(camera: Camera) {
+        val onTapGestureListener = object: GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent?): Boolean {
+                return true
+            }
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                val factory: MeteringPointFactory = DisplayOrientedMeteringPointFactory(
+                    binding.previewView.display,
+                    camera.cameraInfo,
+                    binding.previewView.width.toFloat(),
+                    binding.previewView.height.toFloat()
+                )
+
+                val action: FocusMeteringAction = FocusMeteringAction.Builder(
+                    factory.createPoint(e.x, e.y)
+                ).build()
+
+                camera.cameraControl.startFocusAndMetering(action)
+
+                return true
+            }
+        }
+
+        val tapGestureDetector = GestureDetector(this, onTapGestureListener)
+
+        binding.previewView.setOnTouchListener { _, e: MotionEvent ->
+            val tapEventProcessed = tapGestureDetector.onTouchEvent(e)
+            tapEventProcessed
+        }
     }
 
     private fun setupFlash(camera: Camera) {
