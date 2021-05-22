@@ -3,16 +3,14 @@ package fr.thomasciles.camerax
 import android.Manifest
 import android.annotation.SuppressLint
 import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import android.view.animation.ScaleAnimation
-import android.view.animation.TranslateAnimation
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
@@ -184,8 +182,6 @@ class MainActivity : AppCompatActivity() {
 
                 camera.cameraControl.setZoomRatio(clampedNewZoom)
 
-                Log.d("CameraX", "setZoomRatio ratio: $clampedNewZoom");
-
                 return true
             }
         }
@@ -197,6 +193,12 @@ class MainActivity : AppCompatActivity() {
             val tapEventProcessed = tapGestureDetector.onTouchEvent(e)
             val scaleEventProcessed = scaleDetector.onTouchEvent(e)
             tapEventProcessed || scaleEventProcessed
+        }
+
+        camera.cameraInfo.zoomState.removeObservers(this)
+        camera.cameraInfo.zoomState.observe(this) { state ->
+            val str = String.format("%.2fx", state.zoomRatio)
+            Log.d("CameraX", "zoomState ratio: $str");
         }
     }
 
