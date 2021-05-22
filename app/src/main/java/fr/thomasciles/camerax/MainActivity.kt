@@ -7,14 +7,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MotionEvent
+import android.view.animation.ScaleAnimation
+import android.view.animation.TranslateAnimation
 import android.widget.Toast
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.core.view.setPadding
+import androidx.transition.Fade
+import androidx.transition.TransitionManager
 import com.bumptech.glide.Glide
 import fr.thomasciles.camerax.databinding.ActivityMainBinding
 import kotlinx.coroutines.GlobalScope
@@ -35,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
     private var inBurstMode = false
+    private var flashMode = ImageCapture.FLASH_MODE_OFF
 
     private val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
@@ -62,6 +65,9 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("ClickableViewAccessibility")
     private fun setupView() {
         binding.apply {
+
+            linearLayoutFlashOptions.isVisible = false
+
             cameraCaptureButton.setOnClickListener {
                 takePhoto()
             }
@@ -122,15 +128,74 @@ class MainActivity : AppCompatActivity() {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
-            imageCapture = ImageCapture.Builder().build()
+            imageCapture = ImageCapture
+                .Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .setFlashMode(flashMode)
+                .build()
 
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
+                val camera: Camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
+                setupFlash(camera)
             } catch (e: Exception) {
 
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun setupFlash(camera: Camera) {
+        if (!camera.cameraInfo.hasFlashUnit()) {
+            binding.apply {
+                linearLayoutFlashOptions.isVisible = false
+                imageViewCurrentFlash.setOnClickListener {}
+                imageViewCurrentFlash.setImageResource(R.drawable.ic_baseline_no_flash_24)
+            }
+        } else {
+            binding.apply {
+                var icon = when (flashMode) {
+                    ImageCapture.FLASH_MODE_AUTO -> R.drawable.ic_baseline_flash_auto_24
+                    ImageCapture.FLASH_MODE_ON -> R.drawable.ic_baseline_flash_on_24
+                    else -> R.drawable.ic_baseline_flash_off_24
+                }
+
+                imageViewCurrentFlash.setImageResource(icon)
+                imageViewCurrentFlash.setOnClickListener {
+                    val animate = Fade()
+                    animate.duration = 500
+                    animate.addTarget(linearLayoutFlashOptions)
+
+                    TransitionManager.beginDelayedTransition(linearLayoutFlashOptions, animate)
+                    linearLayoutFlashOptions.isVisible = !linearLayoutFlashOptions.isVisible
+                    llTools.isVisible = !linearLayoutFlashOptions.isVisible
+                }
+
+                imageViewFlashOn.setOnClickListener {
+                    flashMode = ImageCapture.FLASH_MODE_ON
+                    camera.cameraControl.enableTorch(true)
+                    imageViewCurrentFlash.setImageResource(R.drawable.ic_baseline_flash_on_24)
+                    linearLayoutFlashOptions.isVisible = false
+                    llTools.isVisible = true
+                }
+
+                imageViewFlashOff.setOnClickListener {
+                    flashMode = ImageCapture.FLASH_MODE_OFF
+                    camera.cameraControl.enableTorch(false)
+                    imageViewCurrentFlash.setImageResource(R.drawable.ic_baseline_flash_off_24)
+                    linearLayoutFlashOptions.isVisible = false
+                    llTools.isVisible = true
+                }
+
+                imageViewFlashAuto.setOnClickListener {
+                    flashMode = ImageCapture.FLASH_MODE_AUTO
+                    imageViewCurrentFlash.setImageResource(R.drawable.ic_baseline_flash_auto_24)
+                    linearLayoutFlashOptions.isVisible = false
+                    llTools.isVisible = true
+                    startCamera()
+                }
+            }
+        }
     }
 
     private fun takePhoto() {
